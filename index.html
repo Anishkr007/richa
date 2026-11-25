@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Two Stars — For Richa</title>
+  
+  <!-- Google Fonts: Cormorant Garamond & Caveat -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&display=swap" rel="stylesheet">
+
+  <style>
+    /* =========================================================================
+       CSS VARIABLES & THEME PALETTE
+       ========================================================================= */
+    :root {
+      --bg-indigo: #14122b;
+      --dusk-purple: #2b2150;
+      --star-gold: #ffd9a0;
+      --star-gold-glow: rgba(255, 217, 160, 0.4);
+      --soft-rose: #f2a7b8;
+      --soft-rose-glow: rgba(242, 167, 184, 0.35);
+      --mist-white: #f5f4f8;
+      --muted-mist: rgba(245, 244, 248, 0.65);
+      --card-bg: rgba(43, 33, 80, 0.5);
+      --card-border: rgba(255, 217, 160, 0.2);
+      
+      --font-serif: 'Cormorant Garamond', Georgia, serif;
+      --font-handwritten: 'Caveat', cursive, sans-serif;
+    }
+
+    /* Base Reset & Typography */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background-color: var(--bg-indigo);
+      color: var(--mist-white);
+      font-size: 17px;
+    }
+
+    body {
+      font-family: var(--font-serif);
+      background: radial-gradient(circle at 50% 15%, #231b44 0%, #14122b 60%, #0d0c1c 100%);
+      min-height: 100vh;
+      line-height: 1.7;
+      overflow-x: hidden;
+      position: relative;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Starfield Canvas Background */
+    #star-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Floating Hearts Container */
+    #hearts-container {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 99;
+    }
+
+    /* Accessibility Focus Styling */
+    button:focus-visible,
+    a:focus-visible {
+      outline: 2px solid var(--star-gold);
+      outline-offset: 3px;
+    }
+
+    /* Fixed Audio Toggle (Top Right) */
+    .audio-toggle-btn {
+      position: fixed;
+      top: 1.25rem;
+      right: 1.25rem;
+      z-index: 80;
+      min-width: 48px;
+      min-height: 48px;
+      padding: 0.55rem 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: rgba(20, 18, 43, 0.75);
+      border: 1px solid var(--card-border);
+      border-radius: 9999px;
+      color: var(--star-gold);
+      font-family: var(--font-serif);
+      font-size: 0.95rem;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: background 0.25s ease, border-color 0.25s ease, opacity 0.3s ease;
+      opacity: 0.88;
+    }
+
+    .audio-toggle-btn:hover {
+      background: rgba(43, 33, 80, 0.85);
+      border-color: var(--star-gold);
+      opacity: 1;
+    }
+
+    .audio-toggle-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+      flex-shrink: 0;
+    }
+
+    /* =========================================================================
+       1. OPENING SCREEN (FULLSCREEN OVERLAY)
+       ========================================================================= */
+    #opening-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: radial-gradient(circle at 50% 40%, #20183d 0%, #14122b 75%, #0b0a17 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.5rem;
+      text-align: center;
+      transition: opacity 1.1s cubic-bezier(0.4, 0, 0.2, 1), visibility 1.1s;
+    }
+
+    #opening-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .constellation-wrapper {
+      width: 100%;
+      max-width: 320px;
+      margin-bottom: 2rem;
+      position: relative;
+    }
+
+    .map-svg {
+      width: 100%;
+      height: auto;
+      overflow: visible;
+    }
+
+    .star-node {
+      cursor: default;
+    }
+
+    .star-core {
+      fill: var(--star-gold);
+      filter: drop-shadow(0 0 6px var(--star-gold));
+    }
+
+    .star-pulse {
+      fill: none;
+      stroke: var(--star-gold);
+      stroke-width: 1.2;
+      opacity: 0.65;
+      animation: pulseRings 3.2s ease-out infinite;
+      transform-origin: center;
+    }
+
+    .star-pulse.dehradun-pulse {
+      animation-delay: 1.6s;
+      stroke: var(--soft-rose);
+    }
+
+    .star-node.dehradun .star-core {
+      fill: var(--soft-rose);
+      filter: drop-shadow(0 0 6px var(--soft-rose));
+    }
+
+    .connecting-arc {
+      stroke: var(--star-gold);
+      stroke-width: 1.6;
+      stroke-dasharray: 4 6;
+      fill: none;
+      opacity: 0.6;
+      stroke-linecap: round;
+      animation: travelDash 28s linear infinite;
+    }
+
+    .location-label {
+      font-family: var(--font-serif);
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      fill: var(--mist-white);
+    }
+
+    .dist-label {
+      font-family: var(--font-handwritten);
+      font-size: 15px;
+      fill: var(--star-gold);
+      opacity: 0.9;
+    }
+
+    .opening-title {
+      font-size: 1.65rem;
+      font-weight: 400;
+      color: var(--mist-white);
+      max-width: 320px;
+      line-height: 1.45;
+      margin-bottom: 2.2rem;
+      letter-spacing: 0.02em;
+    }
+
+    .opening-title span {
+      display: block;
+      color: var(--star-gold);
+      font-family: var(--font-handwritten);
+      font-size: 2.1rem;
+      margin-top: 0.4rem;
+      font-weight: 600;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      min-height: 48px;
+      padding: 0.85rem 2.2rem;
+      background: linear-gradient(135deg, rgba(255, 217, 160, 0.95), rgba(242, 167, 184, 0.9));
+      color: #14122b;
+      font-family: var(--font-serif);
+      font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      border: none;
+      border-radius: 9999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      box-shadow: 0 4px 20px rgba(255, 217, 160, 0.25);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 26px rgba(255, 217, 160, 0.4);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    /* Keyframes for Opening Screen Motion */
+    @keyframes pulseRings {
+      0% {
+        r: 5px;
+        opacity: 0.8;
+      }
+      70% {
+        r: 18px;
+        opacity: 0.05;
+      }
+      100% {
+        r: 22px;
+        opacity: 0;
+      }
+    }
+
+    @keyframes travelDash {
+      to {
+        stroke-dashoffset: -200;
+      }
+    }
+
+    /* =========================================================================
+       MAIN CONTENT CONTAINER
+       ========================================================================= */
+    .main-content {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 4.5rem 1.25rem 6rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Header / Gentle Intro in main page */
+    .story-header {
+      text-align: center;
+      margin-bottom: 4rem;
+      padding: 0 0.5rem;
+    }
+
+    .story-tagline {
+      font-size: 0.85rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--star-gold);
+      opacity: 0.85;
+      margin-bottom: 0.75rem;
+    }
+
+    .story-title {
+      font-size: 2.1rem;
+      font-weight: 400;
+      color: var(--mist-white);
+      line-height: 1.3;
+    }
+
+    .story-title em {
+      font-style: italic;
+      color: var(--soft-rose);
+    }
+
+    /* =========================================================================
+       2. PHOTOS SECTION (ARCHED FRAMES)
+       ========================================================================= */
+    .photos-section {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3.8rem;
+      margin-bottom: 5.5rem;
+    }
+
+    .photo-card {
+      width: 100%;
+      max-width: 310px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.9s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+      will-change: opacity, transform;
+    }
+
+    .photo-card.is-revealed {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Classic Arched Frame */
+    .arch-frame {
+      width: 100%;
+      height: 380px;
+      border-radius: 155px 155px 18px 18px;
+      overflow: hidden;
+      position: relative;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      box-shadow: 0 16px 36px rgba(10, 8, 26, 0.6), 0 0 24px rgba(43, 33, 80, 0.5);
+      transition: transform 0.4s ease, box-shadow 0.4s ease;
+    }
+
+    /* Delicate tilt variations per card */
+    .photo-card:nth-child(1) .arch-frame { transform: rotate(-1.8deg); }
+    .photo-card:nth-child(2) .arch-frame { transform: rotate(1.8deg); }
+    .photo-card:nth-child(3) .arch-frame { transform: rotate(-1.4deg); }
+    .photo-card:nth-child(4) .arch-frame { transform: rotate(1.5deg); }
+
+    .photo-card:hover .arch-frame {
+      box-shadow: 0 18px 42px rgba(10, 8, 26, 0.75), 0 0 28px rgba(255, 217, 160, 0.15);
+    }
+
+    .arch-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      background-color: var(--dusk-purple);
+      transition: transform 0.6s ease;
+    }
+
+    /* Graceful Fallback if photo file is missing or fails to load */
+    .photo-fallback {
+      display: none;
+      position: absolute;
+      inset: 0;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, #241a45 0%, #15132d 100%);
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    .photo-fallback-icon {
+      font-size: 2.2rem;
+      color: var(--star-gold);
+      opacity: 0.75;
+      margin-bottom: 0.5rem;
+    }
+
+    .photo-fallback-filename {
+      font-family: var(--font-serif);
+      font-size: 0.95rem;
+      letter-spacing: 0.05em;
+      color: var(--muted-mist);
+    }
+
+    /* Handwritten Caption Below Each Arch */
+    .photo-caption {
+      font-family: var(--font-handwritten);
+      font-size: 1.45rem;
+      line-height: 1.35;
+      color: var(--star-gold);
+      text-align: center;
+      margin-top: 1.1rem;
+      padding: 0 0.5rem;
+      max-width: 290px;
+    }
+
+    /* =========================================================================
+       3. MESSAGE SECTION
+       ========================================================================= */
+    .message-section {
+      width: 100%;
+      max-width: 500px;
+      margin-bottom: 5.5rem;
+      text-align: center;
+      padding: 2.5rem 1.6rem;
+      background: rgba(32, 25, 62, 0.45);
+      border: 1px solid rgba(255, 217, 160, 0.14);
+      border-radius: 24px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 12px 32px rgba(9, 7, 22, 0.45);
+    }
+
+    .message-text {
+      font-size: 1.25rem;
+      color: var(--mist-white);
+      line-height: 1.85;
+      margin-bottom: 2rem;
+      font-weight: 400;
+    }
+
+    .message-text p {
+      margin-bottom: 0.85rem;
+    }
+
+    .message-text p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Handwritten Confession */
+    .confession-highlight {
+      font-family: var(--font-handwritten);
+      font-size: 3.2rem;
+      line-height: 1.15;
+      font-weight: 600;
+      color: var(--star-gold);
+      text-shadow: 0 0 16px var(--star-gold-glow);
+      margin-top: 1.5rem;
+    }
+
+    /* =========================================================================
+       4. QUESTION & INTERACTION SECTION
+       ========================================================================= */
+    .question-section {
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 5.5rem;
+      text-align: center;
+      padding: 2rem 1.5rem;
+    }
+
+    .question-title {
+      font-size: 1.6rem;
+      font-weight: 500;
+      color: var(--mist-white);
+      line-height: 1.45;
+      margin-bottom: 1.8rem;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+      transition: opacity 0.4s ease;
+    }
+
+    .btn-choice {
+      min-height: 48px;
+      min-width: 136px;
+      padding: 0.8rem 1.6rem;
+      font-family: var(--font-serif);
+      font-size: 1.05rem;
+      font-weight: 600;
+      border-radius: 9999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.25s ease, border-color 0.25s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .btn-yes {
+      background: var(--star-gold);
+      color: #14122b;
+      border: 1px solid var(--star-gold);
+      box-shadow: 0 4px 18px rgba(255, 217, 160, 0.28);
+    }
+
+    .btn-yes:hover {
+      background: #ffe3b8;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 22px rgba(255, 217, 160, 0.45);
+    }
+
+    .btn-maybe {
+      background: rgba(43, 33, 80, 0.45);
+      color: var(--mist-white);
+      border: 1px solid rgba(245, 244, 248, 0.3);
+    }
+
+    .btn-maybe:hover {
+      background: rgba(43, 33, 80, 0.75);
+      border-color: var(--mist-white);
+      transform: translateY(-2px);
+    }
+
+    /* Response Box */
+    .reply-box {
+      margin-top: 1.5rem;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.8rem 1.2rem;
+      border-radius: 16px;
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    .reply-box.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reply-text {
+      font-family: var(--font-handwritten);
+      font-size: 1.85rem;
+      line-height: 1.35;
+      color: var(--soft-rose);
+      text-shadow: 0 0 12px var(--soft-rose-glow);
+    }
+
+    .reply-text.maybe-text {
+      color: var(--star-gold);
+      font-size: 1.6rem;
+      text-shadow: 0 0 10px var(--star-gold-glow);
+    }
+
+    /* =========================================================================
+       5. FOOTER
+       ========================================================================= */
+    .story-footer {
+      width: 100%;
+      text-align: center;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255, 217, 160, 0.12);
+    }
+
+    .footer-text {
+      font-family: var(--font-serif);
+      font-size: 0.95rem;
+      letter-spacing: 0.08em;
+      color: var(--muted-mist);
+    }
+
+    .footer-heart {
+      color: var(--soft-rose);
+      display: inline-block;
+      margin: 0 0.2rem;
+    }
+
+    /* Floating Heart Elements on "Yes" */
+    .floating-heart {
+      position: absolute;
+      bottom: -40px;
+      color: var(--soft-rose);
+      pointer-events: none;
+      user-select: none;
+      animation: floatUpwards linear forwards;
+    }
+
+    @keyframes floatUpwards {
+      0% {
+        transform: translateY(0) scale(0.6) rotate(0deg);
+        opacity: 0.85;
+      }
+      50% {
+        opacity: 0.95;
+      }
+      100% {
+        transform: translateY(-105vh) scale(1.15) rotate(24deg);
+        opacity: 0;
+      }
+    }
+
+    /* =========================================================================
+       ACCESSIBILITY & PREFERS-REDUCED-MOTION
+       ========================================================================= */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+      }
+
+      .star-pulse,
+      .connecting-arc,
+      .floating-heart {
+        animation: none !important;
+      }
+
+      .photo-card {
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    }
+
+    /* Responsive adjustments */
+    @media (min-width: 600px) {
+      .photos-section {
+        gap: 4.5rem;
+      }
+      .arch-frame {
+        height: 420px;
+        max-width: 330px;
+        border-radius: 165px 165px 20px 20px;
+      }
+      .photo-caption {
+        font-size: 1.55rem;
+      }
+      .story-title {
+        font-size: 2.5rem;
+      }
+      .message-text {
+        font-size: 1.35rem;
+      }
+      .confession-highlight {
+        font-size: 3.6rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Audio Element -->
+  <audio id="bg-audio" preload="auto" loop src="song.mp3"></audio>
+
+  <!-- Starfield Canvas (Subtle ambient stars) -->
+  <canvas id="star-canvas" aria-hidden="true"></canvas>
+
+  <!-- Container for Floating Hearts on "Yes" -->
+  <div id="hearts-container" aria-hidden="true"></div>
+
+  <!-- Audio Mute/Unmute Fixed Control -->
+  <button id="audio-toggle" class="audio-toggle-btn" aria-label="Toggle audio playback" title="Toggle audio">
+    <svg id="audio-icon-on" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+    </svg>
+    <svg id="audio-icon-off" viewBox="0 0 24 24" aria-hidden="true" style="display: none;">
+      <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+    </svg>
+    <span id="audio-label-text">Music</span>
+  </button>
+
+  <!-- =======================================================================
+       1. OPENING SCREEN
+       ======================================================================= -->
+  <div id="opening-screen" role="dialog" aria-modal="true" aria-labelledby="opening-heading">
+    <div class="constellation-wrapper">
+      <svg class="map-svg" viewBox="0 0 320 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Connecting curved dashed arc between Vellore and Dehradun -->
+        <path class="connecting-arc" d="M 60 170 Q 130 50, 260 50" />
+        
+        <!-- Star 1: Vellore (South) -->
+        <g class="star-node vellore" transform="translate(60, 170)">
+          <circle class="star-pulse" r="6" />
+          <circle class="star-core" r="4.5" />
+          <text class="location-label" x="-25" y="24" text-anchor="middle" id="vellore-map-label">Vellore</text>
+        </g>
+        
+        <!-- Star 2: Dehradun (North) -->
+        <g class="star-node dehradun" transform="translate(260, 50)">
+          <circle class="star-pulse dehradun-pulse" r="6" />
+          <circle class="star-core" r="4.5" />
+          <text class="location-label" x="25" y="24" text-anchor="middle" id="dehradun-map-label">Dehradun</text>
+        </g>
+        
+        <!-- Distance note along the curve -->
+        <text class="dist-label" x="155" y="85" text-anchor="middle" id="distance-map-label">~2,000 km</text>
+      </svg>
+    </div>
+
+    <h1 id="opening-heading" class="opening-title">
+      I made something for you, <span id="opening-recipient-name">Richa.</span>
+    </h1>
+
+    <button id="press-play-btn" class="btn-primary" aria-label="Press play to begin story">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M8 5v14l11-7z"/>
+      </svg>
+      <span id="press-play-text">Press play</span>
+    </button>
+  </div>
+
+  <!-- =======================================================================
+       MAIN STORY FLOW
+       ======================================================================= -->
+  <main class="main-content">
+    
+    <header class="story-header">
+      <p class="story-tagline">Two Stars &bull; One Sky</p>
+      <h2 class="story-title">From <em>Vellore</em> to <em>Dehradun</em></h2>
+    </header>
+
+    <!-- 2. PHOTOS SECTION -->
+    <section class="photos-section" aria-label="Our memories and moments">
+      
+      <!-- Photo 1 -->
+      <article class="photo-card">
+        <div class="arch-frame">
+          <img src="photo1.jpg" alt="A moment of Richa" loading="lazy" onerror="handleImageError(this, 'photo1.jpg')">
+          <div class="photo-fallback">
+            <div class="photo-fallback-icon">✦</div>
+            <div class="photo-fallback-filename">photo1.jpg</div>
+          </div>
+        </div>
+        <p class="photo-caption" id="caption-1">That smile I keep looking for.</p>
+      </article>
+
+      <!-- Photo 2 -->
+      <article class="photo-card">
+        <div class="arch-frame">
+          <img src="photo2.jpg" alt="A sweet memory with Richa" loading="lazy" onerror="handleImageError(this, 'photo2.jpg')">
+          <div class="photo-fallback">
+            <div class="photo-fallback-icon">✦</div>
+            <div class="photo-fallback-filename">photo2.jpg</div>
+          </div>
+        </div>
+        <p class="photo-caption" id="caption-2">The way you make ordinary moments feel like poetry.</p>
+      </article>
+
+      <!-- Photo 3 -->
+      <article class="photo-card">
+        <div class="arch-frame">
+          <img src="photo3.jpg" alt="Richa looking bright" loading="lazy" onerror="handleImageError(this, 'photo3.jpg')">
+          <div class="photo-fallback">
+            <div class="photo-fallback-icon">✦</div>
+            <div class="photo-fallback-filename">photo3.jpg</div>
+          </div>
+        </div>
+        <p class="photo-caption" id="caption-3">Wish I was right there next to you.</p>
+      </article>
+
+      <!-- Photo 4 -->
+      <article class="photo-card">
+        <div class="arch-frame">
+          <img src="photo4.jpg" alt="A special picture of Richa" loading="lazy" onerror="handleImageError(this, 'photo4.jpg')">
+          <div class="photo-fallback">
+            <div class="photo-fallback-icon">✦</div>
+            <div class="photo-fallback-filename">photo4.jpg</div>
+          </div>
+        </div>
+        <p class="photo-caption" id="caption-4">My favorite notification, every single day.</p>
+      </article>
+
+    </section>
+
+    <!-- 3. MESSAGE SECTION -->
+    <section class="message-section" aria-label="A message from Anish">
+      <div class="message-text" id="message-container">
+        <!-- Rendered from CONFIG -->
+      </div>
+      <div class="confession-highlight" id="confession-text">
+        I like you.
+      </div>
+    </section>
+
+    <!-- 4. QUESTION & INTERACTION -->
+    <section class="question-section" aria-label="A question for you">
+      <h3 class="question-title" id="question-heading">
+        Want to get coffee with me when we meet?
+      </h3>
+
+      <div class="button-group" id="question-button-group">
+        <button id="btn-yes" class="btn-choice btn-yes" aria-label="Yes, let's get coffee">
+          Yes
+        </button>
+        <button id="btn-maybe" class="btn-choice btn-maybe" aria-label="Maybe later">
+          Maybe later
+        </button>
+      </div>
+
+      <div id="reply-box" class="reply-box" aria-live="polite">
+        <p id="reply-text" class="reply-text"></p>
+      </div>
+    </section>
+
+    <!-- 5. FOOTER -->
+    <footer class="story-footer">
+      <p class="footer-text" id="footer-text">
+        Made with love by Anish
+      </p>
+    </footer>
+
+  </main>
+
+  <!-- =======================================================================
+       JAVASCRIPT LOGIC & CONFIGURATION
+       ======================================================================= -->
+  <script>
+    /* =========================================================================
+       EDITABLE TEXT CONFIGURATION
+       Customize any captions, letters, questions, or names in this block.
+       ========================================================================= */
+    const CONFIG = {
+      // Names & Places
+      recipientName: "Richa",
+      senderName: "Anish",
+      herLocation: "Dehradun",
+      myLocation: "Vellore",
+      distanceText: "1,980 km apart",
+
+      // Opening Screen
+      openingTitleTemplate: "I made something for you, ",
+      playButtonText: "Press play",
+
+      // Handwritten Captions for Photo 1 to 4
+      photoCaptions: [
+        "That smile I keep looking for.",
+        "The way you make ordinary moments feel like poetry.",
+        "Wish I was right there next to you.",
+        "My favorite notification, every single day."
+      ],
+
+      // Sincere, real message (4 to 5 short lines, no clichés)
+      messageLines: [
+        "There are almost two thousand kilometers between Vellore and Dehradun.",
+        "Most days, that distance feels huge.",
+        "Yet whenever you talk to me, the world gets wonderfully quiet and everything makes sense.",
+        "I love your laugh, your stories, and how quickly hours slip by when it's you."
+      ],
+
+      // Handwritten confession punchline
+      confessionText: "I like you.",
+
+      // Question & Replies
+      questionHeading: "Want to get coffee with me when we meet?",
+      yesButtonText: "Yes",
+      maybeButtonText: "Maybe later",
+      yesReplyText: "You just made my whole year.",
+      maybeReplyText: "No pressure. I'll be here.",
+
+      // Footer
+      footerText: "Made with love by Anish"
+    };
+
+    /* =========================================================================
+       INITIALIZE CONFIG INTO DOM
+       ========================================================================= */
+    function applyConfig() {
+      // Opening screen
+      const recipientSpan = document.getElementById('opening-recipient-name');
+      if (recipientSpan) recipientSpan.textContent = CONFIG.recipientName + '.';
+      
+      const playText = document.getElementById('press-play-text');
+      if (playText) playText.textContent = CONFIG.playButtonText;
+
+      const velloreLabel = document.getElementById('vellore-map-label');
+      if (velloreLabel) velloreLabel.textContent = CONFIG.myLocation;
+
+      const dehradunLabel = document.getElementById('dehradun-map-label');
+      if (dehradunLabel) dehradunLabel.textContent = CONFIG.herLocation;
+
+      const distanceLabel = document.getElementById('distance-map-label');
+      if (distanceLabel) distanceLabel.textContent = CONFIG.distanceText;
+
+      // Photo Captions
+      CONFIG.photoCaptions.forEach((cap, idx) => {
+        const el = document.getElementById(`caption-${idx + 1}`);
+        if (el) el.textContent = cap;
+      });
+
+      // Message Lines
+      const msgContainer = document.getElementById('message-container');
+      if (msgContainer) {
+        msgContainer.innerHTML = CONFIG.messageLines
+          .map(line => `<p>${escapeHTML(line)}</p>`)
+          .join('');
+      }
+
+      // Confession
+      const confEl = document.getElementById('confession-text');
+      if (confEl) confEl.textContent = CONFIG.confessionText;
+
+      // Question & Buttons
+      const qHeading = document.getElementById('question-heading');
+      if (qHeading) qHeading.textContent = CONFIG.questionHeading;
+
+      const btnYes = document.getElementById('btn-yes');
+      if (btnYes) btnYes.textContent = CONFIG.yesButtonText;
+
+      const btnMaybe = document.getElementById('btn-maybe');
+      if (btnMaybe) btnMaybe.textContent = CONFIG.maybeButtonText;
+
+      // Footer
+      const footerEl = document.getElementById('footer-text');
+      if (footerEl) {
+        footerEl.innerHTML = `Made with love by ${escapeHTML(CONFIG.senderName)}`;
+      }
+    }
+
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, 
+        tag => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          "'": '&#39;',
+          '"': '&quot;'
+        }[tag] || tag)
+      );
+    }
+
+    /* =========================================================================
+       PHOTO FALLBACK HANDLING
+       Gracefully handles missing or unloaded photo1.jpg - photo4.jpg
+       ========================================================================= */
+    function handleImageError(imgElement, filename) {
+      imgElement.style.display = 'none';
+      const fallback = imgElement.parentElement.querySelector('.photo-fallback');
+      if (fallback) {
+        fallback.style.display = 'flex';
+        const nameEl = fallback.querySelector('.photo-fallback-filename');
+        if (nameEl) nameEl.textContent = filename;
+      }
+    }
+
+    /* =========================================================================
+       AUDIO CONTROLS (AUTOPLAY-SAFE & 60% VOLUME)
+       ========================================================================= */
+    const bgAudio = document.getElementById('bg-audio');
+    const audioToggleBtn = document.getElementById('audio-toggle');
+    const audioIconOn = document.getElementById('audio-icon-on');
+    const audioIconOff = document.getElementById('audio-icon-off');
+    const audioLabelText = document.getElementById('audio-label-text');
+    let isPlaying = false;
+
+    // Set initial volume at 60% as required
+    bgAudio.volume = 0.6;
+    bgAudio.loop = true;
+
+    function updateAudioUI(playing) {
+      isPlaying = playing;
+      if (playing) {
+        audioIconOn.style.display = 'block';
+        audioIconOff.style.display = 'none';
+        audioLabelText.textContent = 'Music';
+        audioToggleBtn.setAttribute('aria-label', 'Mute music');
+      } else {
+        audioIconOn.style.display = 'none';
+        audioIconOff.style.display = 'block';
+        audioLabelText.textContent = 'Muted';
+        audioToggleBtn.setAttribute('aria-label', 'Unmute music');
+      }
+    }
+
+    function toggleAudio() {
+      if (bgAudio.paused) {
+        bgAudio.play().then(() => {
+          updateAudioUI(true);
+        }).catch(err => {
+          console.warn("Audio playback couldn't start:", err);
+          updateAudioUI(false);
+        });
+      } else {
+        bgAudio.pause();
+        updateAudioUI(false);
+      }
+    }
+
+    audioToggleBtn.addEventListener('click', toggleAudio);
+
+    /* =========================================================================
+       OPENING SCREEN TRANSITION
+       ========================================================================= */
+    const openingScreen = document.getElementById('opening-screen');
+    const pressPlayBtn = document.getElementById('press-play-btn');
+
+    pressPlayBtn.addEventListener('click', () => {
+      // Start audio looping at 60% volume
+      bgAudio.volume = 0.6;
+      bgAudio.play().then(() => {
+        updateAudioUI(true);
+      }).catch(err => {
+        console.warn("Autoplay note: audio play request was interrupted or prevented.", err);
+        updateAudioUI(false);
+      });
+
+      // Smoothly fade out the opening screen
+      openingScreen.classList.add('hidden');
+    });
+
+    /* =========================================================================
+       SCROLL REVEAL OBSERVER FOR PHOTOS
+       ========================================================================= */
+    function setupScrollReveal() {
+      const photoCards = document.querySelectorAll('.photo-card');
+      
+      // If prefers-reduced-motion is true, reveal instantly
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion || !('IntersectionObserver' in window)) {
+        photoCards.forEach(card => card.classList.add('is-revealed'));
+        return;
+      }
+
+      const observer = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-revealed');
+            obs.unobserve(entry.target);
+          }
+        });
+      }, {
+        threshold: 0.15,
+        rootMargin: '0px 0px -40px 0px'
+      });
+
+      photoCards.forEach(card => observer.observe(card));
+    }
+
+    /* =========================================================================
+       QUESTION BUTTONS & FLOATING HEARTS (ON YES)
+       ========================================================================= */
+    const btnYes = document.getElementById('btn-yes');
+    const btnMaybe = document.getElementById('btn-maybe');
+    const replyBox = document.getElementById('reply-box');
+    const replyText = document.getElementById('reply-text');
+    const buttonGroup = document.getElementById('question-button-group');
+    const heartsContainer = document.getElementById('hearts-container');
+
+    btnYes.addEventListener('click', () => {
+      replyText.textContent = CONFIG.yesReplyText;
+      replyText.className = 'reply-text';
+      replyBox.classList.add('visible');
+      
+      // Dim or disable buttons
+      buttonGroup.style.opacity = '0.4';
+      buttonGroup.style.pointerEvents = 'none';
+
+      // Trigger floating hearts
+      spawnFloatingHearts();
+    });
+
+    btnMaybe.addEventListener('click', () => {
+      replyText.textContent = CONFIG.maybeReplyText;
+      replyText.className = 'reply-text maybe-text';
+      replyBox.classList.add('visible');
+
+      // Dim or disable buttons
+      buttonGroup.style.opacity = '0.4';
+      buttonGroup.style.pointerEvents = 'none';
+    });
+
+    function spawnFloatingHearts() {
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) return;
+
+      const heartSymbols = ['♥', '❤', '✦', '♥', '💖'];
+      const count = 30;
+
+      for (let i = 0; i < count; i++) {
+        setTimeout(() => {
+          const heart = document.createElement('div');
+          heart.className = 'floating-heart';
+          heart.textContent = heartSymbols[Math.floor(Math.random() * heartSymbols.length)];
+          
+          const startX = Math.random() * 92 + 4; // 4vw to 96vw
+          const size = Math.random() * 1.5 + 1.1; // 1.1rem to 2.6rem
+          const duration = Math.random() * 2.5 + 3.5; // 3.5s to 6.0s
+          const hue = Math.random() > 0.4 ? 'var(--soft-rose)' : 'var(--star-gold)';
+
+          heart.style.left = `${startX}vw`;
+          heart.style.fontSize = `${size}rem`;
+          heart.style.color = hue;
+          heart.style.animationDuration = `${duration}s`;
+
+          heartsContainer.appendChild(heart);
+
+          setTimeout(() => {
+            heart.remove();
+          }, duration * 1000);
+        }, i * 140);
+      }
+    }
+
+    /* =========================================================================
+       SUBTLE AMBIENT STARFIELD CANVAS
+       Soft, calm twinkling stars across the dark indigo night sky.
+       ========================================================================= */
+    function initStarfield() {
+      const canvas = document.getElementById('star-canvas');
+      const ctx = canvas.getContext('2d');
+      let width = canvas.width = window.innerWidth;
+      let height = canvas.height = window.innerHeight;
+
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const starCount = Math.floor((width * height) / 8000);
+      const stars = [];
+
+      for (let i = 0; i < starCount; i++) {
+        stars.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          radius: Math.random() * 1.2 + 0.3,
+          alpha: Math.random() * 0.7 + 0.2,
+          speed: Math.random() * 0.008 + 0.003,
+          delta: Math.random() * Math.PI * 2,
+          isGold: Math.random() > 0.65
+        });
+      }
+
+      function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        // Re-scatter if dimensions change dramatically
+        stars.forEach(s => {
+          s.x = Math.random() * width;
+          s.y = Math.random() * height;
+        });
+      }
+      window.addEventListener('resize', resize, { passive: true });
+
+      function render() {
+        ctx.clearRect(0, 0, width, height);
+
+        for (let i = 0; i < stars.length; i++) {
+          const s = stars[i];
+          if (!prefersReducedMotion) {
+            s.delta += s.speed;
+          }
+          const currentAlpha = prefersReducedMotion 
+            ? s.alpha 
+            : Math.max(0.15, Math.min(0.95, s.alpha + Math.sin(s.delta) * 0.3));
+
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+          ctx.fillStyle = s.isGold 
+            ? `rgba(255, 217, 160, ${currentAlpha})` 
+            : `rgba(245, 244, 248, ${currentAlpha * 0.85})`;
+          ctx.fill();
+        }
+
+        if (!prefersReducedMotion) {
+          requestAnimationFrame(render);
+        }
+      }
+
+      render();
+    }
+
+    /* =========================================================================
+       DOM CONTENT LOADED INITIALIZATION
+       ========================================================================= */
+    document.addEventListener('DOMContentLoaded', () => {
+      applyConfig();
+      setupScrollReveal();
+      initStarfield();
+    });
+  </script>
+</body>
+</html>
